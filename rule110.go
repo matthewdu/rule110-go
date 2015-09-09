@@ -25,24 +25,49 @@ func Rule110Handler(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  arr := make([][]bool, i)
-  for row := range arr {
-    arr[row] = make([]bool, i)
-    arr[row][i-row-1] = true
-    arr[row][i-1] = true
+//  arr := make([][]bool, i)
+//  for row := range arr {
+//    arr[row] = make([]bool, i)
+//    arr[row][i-row-1] = true
+//    arr[row][i-1] = true
+//    if row != 0 {
+//      for j := i-row-1; j < i-1; j++ {
+//        if j == 0 {
+//          continue
+//        }
+//        arr[row][j] = Rule(arr[row-1][j-1], arr[row-1][j], arr[row-1][j+1])
+//      }
+//    }
+//  }
+//
+//  for row := range arr {
+//    for col := range arr[row] {
+//      if arr[row][col] {
+//        fmt.Fprint(w, "█")
+//      } else {
+//        fmt.Fprint(w, " ")
+//      }
+//    }
+//    fmt.Fprintln(w, "")
+//  }
+
+  arr := [2][]bool{
+    make([]bool, i),
+    make([]bool, i),
+  }
+  arr[0][i-1] = true
+  arr[1][i-1] = true
+  for row := 0; row < i; row++ {
+    arr[0][i-row-1] = true
     if row != 0 {
       for j := i-row-1; j < i-1; j++ {
-        if j == 0 {
-          continue
-        }
-        arr[row][j] = Rule(arr[row-1][j-1], arr[row-1][j], arr[row-1][j+1])
+        if j == 0 { continue }
+        arr[1][j] = Rule(arr[0][j-1], arr[0][j], arr[0][j+1])
       }
     }
-  }
-
-  for row := range arr {
-    for col := range arr[row] {
-      if arr[row][col] {
+    for j := range arr[1] {
+      arr[0][j] = arr[1][j]
+      if arr[1][j] {
         fmt.Fprint(w, "█")
       } else {
         fmt.Fprint(w, " ")
@@ -50,6 +75,7 @@ func Rule110Handler(w http.ResponseWriter, r *http.Request) {
     }
     fmt.Fprintln(w, "")
   }
+
   fmt.Fprintln(w, i)
 }
 
