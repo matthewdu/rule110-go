@@ -25,11 +25,11 @@ func Rule110Handler(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  arr := make([][]int, i)
+  arr := make([][]bool, i)
   for row := range arr {
-    arr[row] = make([]int, i)
-    arr[row][i-row-1] = 1
-    arr[row][i-1] = 1
+    arr[row] = make([]bool, i)
+    arr[row][i-row-1] = true
+    arr[row][i-1] = true
     if row != 0 {
       for j := i-row-1; j < i-1; j++ {
         if j == 0 {
@@ -42,7 +42,7 @@ func Rule110Handler(w http.ResponseWriter, r *http.Request) {
 
   for row := range arr {
     for col := range arr[row] {
-      if arr[row][col] == 1 {
+      if arr[row][col] {
         fmt.Fprint(w, "█")
       } else {
         fmt.Fprint(w, " ")
@@ -53,17 +53,22 @@ func Rule110Handler(w http.ResponseWriter, r *http.Request) {
   fmt.Fprintln(w, i)
 }
 
-func Rule(i, j, k int) int {
-  arr := [2][2][2]int{
-    [2][2]int{
-      [2]int{0, 1},
-      [2]int{1, 1},
+func Rule(i, j, k bool) bool {
+  arr := [2][2][2]bool{
+    [2][2]bool{
+      [2]bool{false, true},
+      [2]bool{true, true},
     },
-    [2][2]int{
-      [2]int{0, 1},
-      [2]int{1, 0},
+    [2][2]bool{
+      [2]bool{false, true},
+      [2]bool{true, false},
     },
   }
-  return arr[i][j][k]
+  var x, y, z int
+  if i { x = 1 } else { x = 0 }
+  if j { y = 1 } else { y = 0 }
+  if k { z = 1 } else { z = 0 }
+
+  return arr[x][y][z]
 }
 
