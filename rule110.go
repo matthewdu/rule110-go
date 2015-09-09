@@ -1,4 +1,4 @@
-package main
+package rule110
 
 import (
   "fmt"
@@ -10,6 +10,10 @@ import (
 func main() {
   http.HandleFunc("/", Rule110Handler)
   http.ListenAndServe(":3000", nil)
+}
+
+func init() {
+  http.HandleFunc("/", Rule110Handler)
 }
 
 func Rule110Handler(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +48,7 @@ func Rule110Handler(w http.ResponseWriter, r *http.Request) {
         fmt.Fprint(w, " ")
       }
     }
-    fmt.Fprint(w, "\n")
+    fmt.Fprintln(w, "")
   }
   fmt.Fprintln(w, i)
 }
