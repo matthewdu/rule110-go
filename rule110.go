@@ -38,6 +38,22 @@ func Rule110Handler(w http.ResponseWriter, r *http.Request) {
   fmt.Fprint(w,
     `<html>
         <head>
+          <style>
+            .b {
+              display: inline-block;
+              position: relative;
+              height: 4px;
+              width: 4px;
+              background: black;
+            }
+            .w {
+              display: inline-block;
+              position: relative;
+              height: 4px;
+              width: 4px;
+              background: white;
+            }
+          </style>
         </head>
         <body>
         </body>
@@ -61,9 +77,9 @@ func Rule110Handler(w http.ResponseWriter, r *http.Request) {
     for j := range arr[1] {
       arr[0][j] = arr[1][j]
       if arr[1][j] {
-        fmt.Fprint(w, "<div style=\"display: inline-block; position:relative; height:4px; width:4px; background:black;\"></div>")
+        fmt.Fprint(w, "<div class=\"b\"></div>")
       } else {
-        fmt.Fprint(w, "<div style=\"display: inline-block; position:relative; height:4px; width:4px; background:white;\"></div>")
+        fmt.Fprint(w, "<div class=\"w\"></div>")
       }
     }
     fmt.Fprint(w, "</div>")
