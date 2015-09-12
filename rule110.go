@@ -3,11 +3,13 @@ package rule110
 import (
   "fmt"
   "image"
-  "image/color"
+  "image/color/palette"
   "image/png"
   "net/http"
   "regexp"
   "strconv"
+
+  "github.com/go-zoo/bone"
 )
 
 var rules = [2][2][2]bool{
@@ -21,20 +23,42 @@ var rules = [2][2][2]bool{
   },
 }
 
+const (
+  blackIndex uint8 = 0
+  whiteIndex uint8 = 215
+)
+
 func main() {
-  http.HandleFunc("/image", ImageHandler)
-  http.HandleFunc("/html", Rule110Handler)
-  http.ListenAndServe(":3000", nil)
+  mux := bone.New()
+
+  mux.GetFunc("/image/:rows", ImageHandler)
+  mux.GetFunc("/html/:rows", HtmlHandler)
+
+  http.ListenAndServe(":3000", mux)
 }
 
 func init() {
-  http.HandleFunc("/image/", ImageHandler)
-  http.HandleFunc("/html/", Rule110Handler)
+  mux := bone.New()
+
+  mux.GetFunc("/image/:rows", ImageHandler)
+  mux.GetFunc("/html/:rows", HtmlHandler)
+
+  http.Handle("/", mux)
 }
 
-func Rule110Handler(w http.ResponseWriter, r *http.Request) {
-  re := regexp.MustCompile("/html/\\d*")
-  i, err := strconv.Atoi(re.FindString(r.RequestURI)[6:])
+func rule(i, j, k bool) bool {
+  var x, y, z int
+  if i { x = 1 } else { x = 0 }
+  if j { y = 1 } else { y = 0 }
+  if k { z = 1 } else { z = 0 }
+
+  return rules[x][y][z]
+}
+
+func HtmlHandler(w http.ResponseWriter, r *http.Request) {
+  val := bone.GetValue(r, "rows")
+  re := regexp.MustCompile("\\d*")
+  i, err := strconv.Atoi(re.FindString(val))
   if err != nil {
     fmt.Fprint(w, "Please pass in number of rows")
     return
@@ -75,7 +99,7 @@ func Rule110Handler(w http.ResponseWriter, r *http.Request) {
     if row != 0 {
       for j := i-row; j < i-1; j++ {
         if j == 0 { continue }
-        arr[1][j] = Rule(arr[0][j-1], arr[0][j], arr[0][j+1])
+        arr[1][j] = rule(arr[0][j-1], arr[0][j], arr[0][j+1])
       }
     }
     fmt.Fprint(w, "<div>")
@@ -96,19 +120,15 @@ func Rule110Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ImageHandler(w http.ResponseWriter, r *http.Request) {
-  re := regexp.MustCompile("/image/\\d*")
-  i, err := strconv.Atoi(re.FindString(r.RequestURI)[7:])
+  val := bone.GetValue(r, "rows")
+  re := regexp.MustCompile("\\d*")
+  i, err := strconv.Atoi(re.FindString(val))
   if err != nil {
     fmt.Fprint(w, "Please pass in number of row")
     return
   }
 
-  m := image.NewRGBA(image.Rectangle{Min: image.Point{0, 0}, Max: image.Point{i, i}})
-//  for y := 0; y < i; y++ {
-//    for x := 0; x < i; x++ {
-//      m.SetRGBA(x, y, color.RGBA{uint8(x), uint8((x + y) / 2), uint8(y), 255})
-//    }
-//  }
+  m := image.NewPaletted(image.Rectangle{Min: image.Point{0, 0}, Max: image.Point{i, i}}, palette.WebSafe)
 
   arr := [2][]bool{
     make([]bool, i),
@@ -121,15 +141,15 @@ func ImageHandler(w http.ResponseWriter, r *http.Request) {
     if row != 0 {
       for j := i-row; j < i-1; j++ {
         if j == 0 { continue }
-        arr[1][j] = Rule(arr[0][j-1], arr[0][j], arr[0][j+1])
+        arr[1][j] = rule(arr[0][j-1], arr[0][j], arr[0][j+1])
       }
     }
     for j := range arr[1] {
       arr[0][j] = arr[1][j]
       if arr[1][j] {
-        m.SetRGBA(j, row, color.RGBA{0, 0, 0, 255})
+        m.SetColorIndex(j, row, blackIndex)
       } else {
-        m.SetRGBA(j, row, color.RGBA{255, 255, 255, 255})
+        m.SetColorIndex(j, row, whiteIndex)
       }
     }
   }
@@ -138,12 +158,4 @@ func ImageHandler(w http.ResponseWriter, r *http.Request) {
   png.Encode(w, m)
 }
 
-func Rule(i, j, k bool) bool {
-  var x, y, z int
-  if i { x = 1 } else { x = 0 }
-  if j { y = 1 } else { y = 0 }
-  if k { z = 1 } else { z = 0 }
-
-  return rules[x][y][z]
-}
 
