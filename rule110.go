@@ -3,7 +3,7 @@ package rule110
 import (
   "fmt"
   "image"
-  "image/color/palette"
+  "image/color"
   "image/png"
   "net/http"
   "regexp"
@@ -22,11 +22,6 @@ var rules = [2][2][2]bool{
     [2]bool{true, false},
   },
 }
-
-const (
-  blackIndex uint8 = 0
-  whiteIndex uint8 = 215
-)
 
 func main() {
   mux := bone.New()
@@ -53,6 +48,23 @@ func rule(i, j, k bool) bool {
   if k { z = 1 } else { z = 0 }
 
   return rules[x][y][z]
+}
+
+var rulesUint8 = [2][2][2]uint8{
+  [2][2]uint8{
+    [2]uint8{0, 1},
+    [2]uint8{1, 1},
+  },
+  [2][2]uint8{
+    [2]uint8{0, 1},
+    [2]uint8{1, 0},
+  },
+}
+
+// Black and white palette
+var bwPalette []color.Color = []color.Color{
+  color.RGBA{0xff, 0xff, 0xff, 0xff},
+  color.RGBA{0x00, 0x00, 0x00, 0xff},
 }
 
 func HtmlHandler(w http.ResponseWriter, r *http.Request) {
@@ -122,40 +134,25 @@ func HtmlHandler(w http.ResponseWriter, r *http.Request) {
 func ImageHandler(w http.ResponseWriter, r *http.Request) {
   val := bone.GetValue(r, "rows")
   re := regexp.MustCompile("\\d*")
-  i, err := strconv.Atoi(re.FindString(val))
+  rows, err := strconv.Atoi(re.FindString(val))
   if err != nil {
     fmt.Fprint(w, "Please pass in number of row")
     return
   }
 
-  m := image.NewPaletted(image.Rectangle{Min: image.Point{0, 0}, Max: image.Point{i, i}}, palette.WebSafe)
+  m := image.NewPaletted(image.Rectangle{Min: image.Point{0, 0}, Max: image.Point{rows, rows}}, bwPalette)
 
-  arr := [2][]bool{
-    make([]bool, i),
-    make([]bool, i),
-  }
-  arr[0][i-1] = true
-  arr[1][i-1] = true
-  for row := 1; row < i; row++ {
-    arr[0][i-row-1] = true
-    if row != 0 {
-      for j := i-row; j < i-1; j++ {
-        if j == 0 { continue }
-        arr[1][j] = rule(arr[0][j-1], arr[0][j], arr[0][j+1])
-      }
-    }
-    for j := range arr[1] {
-      arr[0][j] = arr[1][j]
-      if arr[1][j] {
-        m.SetColorIndex(j, row, blackIndex)
-      } else {
-        m.SetColorIndex(j, row, whiteIndex)
-      }
+  m.Pix[m.PixOffset(rows-1, 0)] = 1
+  for row := 1; row < rows; row++ {
+    m.Pix[m.PixOffset(rows-1, row)] = 1
+    for j := rows-row; j < rows-1; j++ {
+      mid := m.PixOffset(j, row-1)
+      left, right := mid-1, mid+1
+      m.Pix[m.PixOffset(j, row)] = rulesUint8[m.Pix[left]][m.Pix[mid]][m.Pix[right]]
     }
   }
   w.Header().Set("Content-type", "image/png")
   w.Header().Set("Cache-control", "public, max-age=259200")
   png.Encode(w, m)
 }
-
 
