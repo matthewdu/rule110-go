@@ -5,23 +5,14 @@ import (
   "image"
   "image/color"
   "image/png"
+  "io/ioutil"
   "net/http"
   "regexp"
   "strconv"
 
   "github.com/go-zoo/bone"
+  "google.golang.org/cloud/storage"
 )
-
-var rules = [2][2][2]bool{
-  [2][2]bool{
-    [2]bool{false, true},
-    [2]bool{true, true},
-  },
-  [2][2]bool{
-    [2]bool{false, true},
-    [2]bool{true, false},
-  },
-}
 
 func main() {
   mux := bone.New()
@@ -41,13 +32,15 @@ func init() {
   http.Handle("/", mux)
 }
 
-func rule(i, j, k bool) bool {
-  var x, y, z int
-  if i { x = 1 } else { x = 0 }
-  if j { y = 1 } else { y = 0 }
-  if k { z = 1 } else { z = 0 }
-
-  return rules[x][y][z]
+var rules = [2][2][2]bool{
+  [2][2]bool{
+    [2]bool{false, true},
+    [2]bool{true, true},
+  },
+  [2][2]bool{
+    [2]bool{false, true},
+    [2]bool{true, false},
+  },
 }
 
 var rulesUint8 = [2][2][2]uint8{
@@ -59,6 +52,15 @@ var rulesUint8 = [2][2][2]uint8{
     [2]uint8{0, 1},
     [2]uint8{1, 0},
   },
+}
+
+func rule(i, j, k bool) bool {
+  var x, y, z int
+  if i { x = 1 } else { x = 0 }
+  if j { y = 1 } else { y = 0 }
+  if k { z = 1 } else { z = 0 }
+
+  return rules[x][y][z]
 }
 
 // Black and white palette
@@ -134,10 +136,26 @@ func HtmlHandler(w http.ResponseWriter, r *http.Request) {
 func ImageHandler(w http.ResponseWriter, r *http.Request) {
   val := bone.GetValue(r, "rows")
   re := regexp.MustCompile("\\d*")
-  rows, err := strconv.Atoi(re.FindString(val))
+  rowsStr := re.FindString(val)
+  rows, err := strconv.Atoi(rowsStr)
   if err != nil {
     fmt.Fprint(w, "Please pass in number of row")
     return
+  }
+
+  ctx, err := cloudAuthContext(r)
+  if err == nil {
+    rc, err := storage.NewReader(ctx, bucket, rowsStr + ".png")
+    if err == nil {
+      image, err := ioutil.ReadAll(rc)
+      rc.Close()
+      if err == nil {
+        w.Header().Set("Content-type", "image/png")
+        w.Header().Set("Cache-control", "public, max-age=259200")
+        w.Write(image)
+        return
+      }
+    }
   }
 
   m := image.NewPaletted(image.Rectangle{Min: image.Point{0, 0}, Max: image.Point{rows, rows}}, bwPalette)
