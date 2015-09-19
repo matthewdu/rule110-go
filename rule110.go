@@ -28,6 +28,9 @@ func init() {
 
   mux.GetFunc("/image/:rows", ImageHandler)
   mux.GetFunc("/html/:rows", HtmlHandler)
+  mux.GetFunc("/", func(w http.ResponseWriter, r *http.Request) {
+    http.Redirect(w, r, "http://github.com/matthewdu/rule110-go", 301)
+  }) 
 
   http.Handle("/", mux)
 }
@@ -75,6 +78,10 @@ func HtmlHandler(w http.ResponseWriter, r *http.Request) {
   i, err := strconv.Atoi(re.FindString(val))
   if err != nil {
     fmt.Fprint(w, "Please pass in number of rows")
+    return
+  }
+  if i > 500 {
+    fmt.Fprint(w, "Please pass in a row equal or smaller than 500")
     return
   }
 
@@ -140,6 +147,10 @@ func ImageHandler(w http.ResponseWriter, r *http.Request) {
   rows, err := strconv.Atoi(rowsStr)
   if err != nil {
     fmt.Fprint(w, "Please pass in number of row")
+    return
+  }
+  if rows > 5000 {
+    fmt.Fprint(w, "Please pass in a row equal or smaller than 5000")
     return
   }
 
