@@ -1,6 +1,7 @@
 package rule110
 
 import (
+  "bytes"
   "fmt"
   "image"
   "image/color"
@@ -56,6 +57,8 @@ var rulesUint8 = [2][2][2]uint8{
     [2]uint8{1, 0},
   },
 }
+
+var cache = make(map[int]*bytes.Buffer)
 
 func rule(i, j, k bool) bool {
   var x, y, z int
@@ -154,6 +157,14 @@ func ImageHandler(w http.ResponseWriter, r *http.Request) {
     return
   }
 
+  cachedImage, ok := cache[rows]
+  if ok {
+    w.Header().Set("Content-type", "image/png")
+    w.Header().Set("Cache-control", "public, max-age=259200")
+    w.Write(cachedImage.Bytes())
+    return
+  }
+
   ctx, err := cloudAuthContext(r)
   if err == nil {
     rc, err := storage.NewReader(ctx, bucket, rowsStr + ".png")
@@ -182,6 +193,9 @@ func ImageHandler(w http.ResponseWriter, r *http.Request) {
   }
   w.Header().Set("Content-type", "image/png")
   w.Header().Set("Cache-control", "public, max-age=259200")
-  png.Encode(w, m)
+  buf := new(bytes.Buffer)
+  png.Encode(buf, m)
+  cache[rows] = buf
+  w.Write(buf.Bytes())
 }
 
